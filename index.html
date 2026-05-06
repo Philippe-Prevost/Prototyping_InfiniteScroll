@@ -57,9 +57,7 @@
 
     <div id="label">Feed A</div>
 
-    <div id="debug">
-        Starting...
-    </div>
+    <div id="debug">Starting...</div>
 
     <video id="current" autoplay muted loop playsinline></video>
     <video id="next" autoplay muted loop playsinline></video>
@@ -78,14 +76,14 @@
         // ---------------------------------
 
         const videos = [
-            "videos/vid1.mp4",
-            "videos/vid2.mp4",
-            "videos/vid3.mp4",
-            "videos/vid4.mp4",
-            "videos/vid5.mp4",
-            "videos/vid6.mp4",
-            "videos/vid7.mp4",
-            "videos/vid8.mp4",
+            "vid1.mp4",
+            "vid2.mp4",
+            "vid3.mp4",
+            "vid4.mp4",
+            "vid5.mp4",
+            "vid6.mp4",
+            "vid7.mp4",
+            "vid8.mp4",
         ];
 
         // ---------------------------------
@@ -235,7 +233,6 @@
             let deltaY =
                 currentY - startY;
 
-            // upward drag only
             if (deltaY < 0) {
 
                 current.style.transform =
@@ -261,10 +258,7 @@
             let dy =
                 e.changedTouches[0].clientY - startY;
 
-            // ---------------------------------
-            // HORIZONTAL FEED SWITCH
-            // ---------------------------------
-
+            // horizontal feed switch
             if (Math.abs(dx) > Math.abs(dy)) {
 
                 if (dx > 50) switchFeed(-1);
@@ -280,16 +274,13 @@
                 return;
             }
 
-            // ---------------------------------
-            // COMPLETE VERTICAL SWIPE
-            // ---------------------------------
-
             current.style.transition =
                 "transform 0.25s ease";
 
             next.style.transition =
                 "transform 0.25s ease";
 
+            // vertical swipe complete
             if (dy < -120) {
 
                 const now = Date.now();
@@ -300,10 +291,6 @@
                 lastSwipe = now;
 
                 swipeCount++;
-
-                // ---------------------------------
-                // FEED BEHAVIORS
-                // ---------------------------------
 
                 let extraDelay = 0;
 
@@ -322,10 +309,6 @@
                     extraDelay += 500;
                 }
 
-                // ---------------------------------
-                // LOGGING
-                // ---------------------------------
-
                 sessionData.push({
                     timestamp: new Date().toISOString(),
                     feed: feeds[currentFeed],
@@ -338,31 +321,18 @@
 
                 updateDebug(interval);
 
-                // ---------------------------------
-                // ANIMATE
-                // ---------------------------------
-
                 current.style.transform =
                     "translateY(-100vh)";
 
                 next.style.transform =
                     "translateY(0vh)";
 
-                // ---------------------------------
-                // APPLY DELAY
-                // ---------------------------------
-
                 setTimeout(() => {
-
-                    // ---------------------------------
-                    // SWAP VIDEO ELEMENTS
-                    // ---------------------------------
 
                     let temp = current;
                     current = next;
                     next = temp;
 
-                    // reset instantly
                     current.style.transition = "none";
                     next.style.transition = "none";
 
@@ -372,7 +342,6 @@
                     next.style.transform =
                         "translateY(100vh)";
 
-                    // preload future video
                     currentIndex =
                         (currentIndex + 1) % videos.length;
 
@@ -384,10 +353,7 @@
 
             }
 
-            // ---------------------------------
-            // SNAP BACK
-            // ---------------------------------
-
+            // snap back
             else {
 
                 current.style.transform =
@@ -400,49 +366,10 @@
         });
 
         // ---------------------------------
-        // DESKTOP CONTROLS
+        // KEYBOARD CONTROLS
         // ---------------------------------
 
         document.addEventListener("keydown", e => {
-
-            if (e.key === "ArrowUp") {
-
-                current.style.transition =
-                    "transform 0.25s ease";
-
-                next.style.transition =
-                    "transform 0.25s ease";
-
-                current.style.transform =
-                    "translateY(-100vh)";
-
-                next.style.transform =
-                    "translateY(0vh)";
-
-                setTimeout(() => {
-
-                    let temp = current;
-                    current = next;
-                    next = temp;
-
-                    current.style.transition = "none";
-                    next.style.transition = "none";
-
-                    current.style.transform =
-                        "translateY(0vh)";
-
-                    next.style.transform =
-                        "translateY(100vh)";
-
-                    currentIndex =
-                        (currentIndex + 1) % videos.length;
-
-                    preload(currentIndex + 1);
-
-                    current.play();
-
-                }, 250);
-            }
 
             if (e.key === "ArrowLeft") {
                 switchFeed(-1);
@@ -475,18 +402,6 @@
 
             updateDebug();
         }
-
-        // ---------------------------------
-        // VIDEO ERRORS
-        // ---------------------------------
-
-        current.addEventListener("error", () => {
-            console.log("CURRENT VIDEO FAILED");
-        });
-
-        next.addEventListener("error", () => {
-            console.log("NEXT VIDEO FAILED");
-        });
 
     </script>
 
