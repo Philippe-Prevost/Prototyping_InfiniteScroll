@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: black;
+            touch-action: none;
+        }
+
+        video {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            top: 0;
+            left: 0;
+            background: black;
+            will-change: transform;
+        }
+
+        #label {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 6px 10px;
+            z-index: 100;
+            font-family: sans-serif;
+            border-radius: 8px;
+        }
+
+        #debug {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px;
+            z-index: 100;
+            font-family: monospace;
+            font-size: 12px;
+            border-radius: 8px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="label">Feed A</div>
+
+    <div id="debug">
+        Starting...
+    </div>
+
+    <video id="current" autoplay muted loop playsinline></video>
+    <video id="next" autoplay muted loop playsinline></video>
+
+    <script>
+
+        // ---------------------------------
+        // FEEDS
+        // ---------------------------------
+
+        const feeds = ["A", "B", "C"];
+        let currentFeed = 0;
+
+        // ---------------------------------
+        // VIDEOS
+        // ---------------------------------
+
+        const videos = [
+            "videos/vid1.mp4",
+            "videos/vid2.mp4",
+            "videos/vid3.mp4",
+            "videos/vid4.mp4",
+            "videos/vid5.mp4",
+            "videos/vid6.mp4",
+            "videos/vid7.mp4",
+            "videos/vid8.mp4",
+        ];
+
+        // ---------------------------------
+        // ELEMENTS
+        // ---------------------------------
+
+        let current =
+            document.getElementById("current");
+
+        let next =
+            document.getElementById("next");
+
+        const label =
+            document.getElementById("label");
+
+        const debug =
+            document.getElementById("debug");
+
+        // ---------------------------------
+        // VIDEO SETTINGS
+        // ---------------------------------
+
+        [current, next].forEach(v => {
+
+            v.muted = true;
+            v.autoplay = true;
+            v.loop = true;
+            v.playsInline = true;
+
+            v.setAttribute("muted", "");
+            v.setAttribute("autoplay", "");
+            v.setAttribute("playsinline", "");
+
+        });
+
+        // ---------------------------------
+        // SESSION DATA
+        // ---------------------------------
+
+        let currentIndex = 0;
+
+        let swipeCount = 0;
+
+        let lastSwipe = Date.now();
+
+        let sessionData = [];
+
+        const sessionStart = Date.now();
+
+        // ---------------------------------
+        // PRELOAD
+        // ---------------------------------
+
+        function preload(index) {
+
+            const file =
+                videos[index % videos.length];
+
+            console.log("Preloading:", file);
+
+            next.preload = "auto";
+
+            next.src = file;
+
+            next.load();
+
+            next.play();
+        }
+
+        // ---------------------------------
+        // INITIAL VIDEO
+        // ---------------------------------
+
+        current.src = videos[0];
+
+        current.play();
+
+        preload(1);
+
+        current.style.transform =
+            "translateY(0vh)";
+
+        next.style.transform =
+            "translateY(100vh)";
+
+        // ---------------------------------
+        // DEBUG UI
+        // ---------------------------------
+
+        function updateDebug(interval = 0) {
+
+            const sessionTime =
+                Math.floor((Date.now() - sessionStart) / 1000);
+
+            debug.innerHTML = `
+                Feed: ${feeds[currentFeed]}<br>
+                Video: ${currentIndex + 1}/${videos.length}<br>
+                Swipes: ${swipeCount}<br>
+                Interval: ${interval}ms<br>
+                Session: ${sessionTime}s
+            `;
+        }
+
+        updateDebug();
+
+        // ---------------------------------
+        // DRAGGING
+        // ---------------------------------
+
+        let dragging = false;
+
+        let startX = 0;
+        let startY = 0;
+
+        let currentY = 0;
+
+        // ---------------------------------
+        // TOUCH START
+        // ---------------------------------
+
+        document.addEventListener("touchstart", e => {
+
+            dragging = true;
+
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+
+            currentY = startY;
+
+            current.style.transition = "none";
+            next.style.transition = "none";
+
+            current.play();
+
+        });
+
+        // ---------------------------------
+        // TOUCH MOVE
+        // ---------------------------------
+
+        document.addEventListener("touchmove", e => {
+
+            if (!dragging) return;
+
+            currentY = e.touches[0].clientY;
+
+            let deltaY =
+                currentY - startY;
+
+            // upward drag only
+            if (deltaY < 0) {
+
+                current.style.transform =
+                    `translateY(${deltaY}px)`;
+
+                next.style.transform =
+                    `translateY(${window.innerHeight + deltaY}px)`;
+            }
+
+        });
+
+        // ---------------------------------
+        // TOUCH END
+        // ---------------------------------
+
+        document.addEventListener("touchend", e => {
+
+            dragging = false;
+
+            let dx =
+                e.changedTouches[0].clientX - startX;
+
+            let dy =
+                e.changedTouches[0].clientY - startY;
+
+            // ---------------------------------
+            // HORIZONTAL FEED SWITCH
+            // ---------------------------------
+
+            if (Math.abs(dx) > Math.abs(dy)) {
+
+                if (dx > 50) switchFeed(-1);
+
+                if (dx < -50) switchFeed(1);
+
+                current.style.transform =
+                    "translateY(0vh)";
+
+                next.style.transform =
+                    "translateY(100vh)";
+
+                return;
+            }
+
+            // ---------------------------------
+            // COMPLETE VERTICAL SWIPE
+            // ---------------------------------
+
+            current.style.transition =
+                "transform 0.25s ease";
+
+            next.style.transition =
+                "transform 0.25s ease";
+
+            if (dy < -120) {
+
+                const now = Date.now();
+
+                const interval =
+                    now - lastSwipe;
+
+                lastSwipe = now;
+
+                swipeCount++;
+
+                // ---------------------------------
+                // FEED BEHAVIORS
+                // ---------------------------------
+
+                let extraDelay = 0;
+
+                // Feed B
+                if (feeds[currentFeed] === "B") {
+                    extraDelay = 600;
+                }
+
+                // Feed C
+                if (feeds[currentFeed] === "C") {
+                    extraDelay = Math.random() * 800;
+                }
+
+                // Adaptive friction
+                if (interval < 1200) {
+                    extraDelay += 500;
+                }
+
+                // ---------------------------------
+                // LOGGING
+                // ---------------------------------
+
+                sessionData.push({
+                    timestamp: new Date().toISOString(),
+                    feed: feeds[currentFeed],
+                    video: currentIndex,
+                    interval: interval,
+                    extraDelay: extraDelay
+                });
+
+                console.log(sessionData);
+
+                updateDebug(interval);
+
+                // ---------------------------------
+                // ANIMATE
+                // ---------------------------------
+
+                current.style.transform =
+                    "translateY(-100vh)";
+
+                next.style.transform =
+                    "translateY(0vh)";
+
+                // ---------------------------------
+                // APPLY DELAY
+                // ---------------------------------
+
+                setTimeout(() => {
+
+                    // ---------------------------------
+                    // SWAP VIDEO ELEMENTS
+                    // ---------------------------------
+
+                    let temp = current;
+                    current = next;
+                    next = temp;
+
+                    // reset instantly
+                    current.style.transition = "none";
+                    next.style.transition = "none";
+
+                    current.style.transform =
+                        "translateY(0vh)";
+
+                    next.style.transform =
+                        "translateY(100vh)";
+
+                    // preload future video
+                    currentIndex =
+                        (currentIndex + 1) % videos.length;
+
+                    preload(currentIndex + 1);
+
+                    current.play();
+
+                }, 250 + extraDelay);
+
+            }
+
+            // ---------------------------------
+            // SNAP BACK
+            // ---------------------------------
+
+            else {
+
+                current.style.transform =
+                    "translateY(0vh)";
+
+                next.style.transform =
+                    "translateY(100vh)";
+            }
+
+        });
+
+        // ---------------------------------
+        // DESKTOP CONTROLS
+        // ---------------------------------
+
+        document.addEventListener("keydown", e => {
+
+            if (e.key === "ArrowUp") {
+
+                current.style.transition =
+                    "transform 0.25s ease";
+
+                next.style.transition =
+                    "transform 0.25s ease";
+
+                current.style.transform =
+                    "translateY(-100vh)";
+
+                next.style.transform =
+                    "translateY(0vh)";
+
+                setTimeout(() => {
+
+                    let temp = current;
+                    current = next;
+                    next = temp;
+
+                    current.style.transition = "none";
+                    next.style.transition = "none";
+
+                    current.style.transform =
+                        "translateY(0vh)";
+
+                    next.style.transform =
+                        "translateY(100vh)";
+
+                    currentIndex =
+                        (currentIndex + 1) % videos.length;
+
+                    preload(currentIndex + 1);
+
+                    current.play();
+
+                }, 250);
+            }
+
+            if (e.key === "ArrowLeft") {
+                switchFeed(-1);
+            }
+
+            if (e.key === "ArrowRight") {
+                switchFeed(1);
+            }
+
+        });
+
+        // ---------------------------------
+        // SWITCH FEED
+        // ---------------------------------
+
+        function switchFeed(dir) {
+
+            currentFeed += dir;
+
+            if (currentFeed < 0) {
+                currentFeed = feeds.length - 1;
+            }
+
+            if (currentFeed >= feeds.length) {
+                currentFeed = 0;
+            }
+
+            label.innerText =
+                "Feed " + feeds[currentFeed];
+
+            updateDebug();
+        }
+
+        // ---------------------------------
+        // VIDEO ERRORS
+        // ---------------------------------
+
+        current.addEventListener("error", () => {
+            console.log("CURRENT VIDEO FAILED");
+        });
+
+        next.addEventListener("error", () => {
+            console.log("NEXT VIDEO FAILED");
+        });
+
+    </script>
+
+</body>
+
+</html>
