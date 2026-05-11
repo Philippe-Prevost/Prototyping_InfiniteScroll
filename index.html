@@ -3,11 +3,9 @@
 
 <head>
 
-    <meta name="viewport"
-        content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
-
         html,
         body {
 
@@ -49,7 +47,7 @@
 
             color: white;
 
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.4);
 
             padding: 6px 10px;
 
@@ -66,27 +64,25 @@
 
             position: fixed;
 
-            top: 60px;
+            top: 55px;
             left: 10px;
 
             z-index: 200;
 
-            width: 240px;
-
-            background: rgba(0,0,0,0.7);
-
             color: white;
-
-            padding: 14px;
-
-            border-radius: 12px;
-
-            backdrop-filter: blur(10px);
         }
 
         .controlGroup {
 
-            margin-bottom: 18px;
+            margin-bottom: 12px;
+
+            background: rgba(0, 0, 0, 0.35);
+
+            padding: 8px 10px;
+
+            border-radius: 10px;
+
+            width: fit-content;
         }
 
         .controlLabel {
@@ -137,6 +133,99 @@
             cursor: pointer;
         }
 
+        /* ----------------------------- */
+        /* PLAY OVERLAY */
+        /* ----------------------------- */
+
+        #playOverlay {
+
+            position: fixed;
+
+            inset: 0;
+
+            display: none;
+
+            justify-content: center;
+            align-items: center;
+
+            z-index: 500;
+
+            pointer-events: none;
+        }
+
+        #playCircle {
+
+            width: 90px;
+            height: 90px;
+
+            border-radius: 50%;
+
+            background: rgba(0, 0, 0, 0.45);
+
+            display: flex;
+
+            justify-content: center;
+            align-items: center;
+
+            backdrop-filter: blur(6px);
+        }
+
+        #playTriangle {
+
+            width: 0;
+            height: 0;
+
+            border-left: 28px solid white;
+
+            border-top: 18px solid transparent;
+
+            border-bottom: 18px solid transparent;
+
+            margin-left: 6px;
+        }
+
+        /* ----------------------------- */
+        /* SENSOR PANEL */
+        /* ----------------------------- */
+
+        #sensorPanel {
+
+            position: fixed;
+
+            bottom: 10px;
+            left: 10px;
+
+            z-index: 300;
+
+            color: white;
+
+            font-family: monospace;
+
+            font-size: 11px;
+        }
+
+        #sensorNumbers {
+
+            background: rgba(0, 0, 0, 0.4);
+
+            padding: 8px;
+
+            border-radius: 8px;
+
+            margin-bottom: 8px;
+
+            line-height: 1.5;
+        }
+
+        #motionGraph {
+
+            width: 320px;
+            height: 120px;
+
+            background: rgba(0, 0, 0, 0.35);
+
+            border-radius: 8px;
+        }
     </style>
 
 </head>
@@ -175,9 +264,7 @@
                 Swipe Tension
             </div>
 
-            <div
-                class="boxes"
-                id="tensionBoxes">
+            <div class="boxes" id="tensionBoxes">
             </div>
 
         </div>
@@ -190,26 +277,44 @@
                 Transition Pace
             </div>
 
-            <div
-                class="boxes"
-                id="paceBoxes">
+            <div class="boxes" id="paceBoxes">
             </div>
 
         </div>
 
     </div>
 
+    <!-- PLAY OVERLAY -->
+
+    <div id="playOverlay">
+
+        <div id="playCircle">
+
+            <div id="playTriangle"></div>
+
+        </div>
+
+    </div>
+
+    <!-- SENSOR PANEL -->
+
+    <div id="sensorPanel">
+
+        <div id="sensorNumbers">
+            Waiting for sensors...
+        </div>
+
+        <canvas id="motionGraph"></canvas>
+
+    </div>
+
     <!-- VIDEOS -->
 
-    <video
-        id="current"
-        muted
-        playsinline></video>
+    <video id="current" muted playsinline>
+    </video>
 
-    <video
-        id="next"
-        muted
-        playsinline></video>
+    <video id="next" muted playsinline>
+    </video>
 
     <script>
 
@@ -219,12 +324,12 @@
 
         const videos = [
 
-            "vid1.mp4",
-            "vid2.mp4",
-            "vid3.mp4",
-            "vid4.mp4",
-            "vid5.mp4",
-            "vid6.mp4"
+            "videos/vid1.mp4",
+            "videos/vid2.mp4",
+            "videos/vid3.mp4",
+            "videos/vid4.mp4",
+            "videos/vid5.mp4",
+            "videos/vid6.mp4"
 
         ];
 
@@ -238,23 +343,30 @@
         let next =
             document.getElementById("next");
 
+        const playOverlay =
+            document.getElementById("playOverlay");
+
+        const sensorNumbers =
+            document.getElementById("sensorNumbers");
+
+        const canvas =
+            document.getElementById("motionGraph");
+
+        const ctx =
+            canvas.getContext("2d");
+
+        canvas.width = 320;
+        canvas.height = 120;
+
         // ---------------------------------
         // SETTINGS
         // ---------------------------------
 
         let autoplayEnabled = true;
 
-        // 1 → 5
         let swipeTension = 2;
 
-        // 1 → 5
         let transitionPace = 2;
-
-        // ---------------------------------
-        // SESSION
-        // ---------------------------------
-
-        let currentIndex = 0;
 
         // ---------------------------------
         // MAPS
@@ -265,20 +377,65 @@
             1: 60,
             2: 120,
             3: 180,
-            4: 240,
-            5: 320
+            4: 260,
+            5: 360
 
         };
 
         const paceMap = {
 
             1: 0,
-            2: 250,
-            3: 700,
-            4: 1400,
-            5: 2200
+            2: 150,
+            3: 400,
+            4: 900,
+            5: 1600
 
         };
+
+        // ---------------------------------
+        // SENSOR DATA
+        // ---------------------------------
+
+        let accX = 0;
+        let accY = 0;
+        let accZ = 0;
+
+        let accMagnitude = 0;
+
+        let rotX = 0;
+        let rotY = 0;
+        let rotZ = 0;
+
+        let rotMagnitude = 0;
+
+        let accHistory = [];
+        let rotHistory = [];
+
+        const maxPoints = 320;
+
+        // ---------------------------------
+        // SESSION
+        // ---------------------------------
+
+        let currentIndex = 0;
+
+        // ---------------------------------
+        // PLAY OVERLAY
+        // ---------------------------------
+
+        function showPlayOverlay() {
+
+            playOverlay.style.display =
+                "flex";
+
+        }
+
+        function hidePlayOverlay() {
+
+            playOverlay.style.display =
+                "none";
+
+        }
 
         // ---------------------------------
         // AUTOPLAY BUTTON
@@ -297,8 +454,24 @@
                 autoplayBtn.innerText =
 
                     autoplayEnabled
-                    ? "ON"
-                    : "OFF";
+                        ? "ON"
+                        : "OFF";
+
+                if (!autoplayEnabled) {
+
+                    current.pause();
+
+                    showPlayOverlay();
+
+                }
+
+                else {
+
+                    current.play();
+
+                    hidePlayOverlay();
+
+                }
 
             }
         );
@@ -391,21 +564,23 @@
 
             next.load();
 
+            next.pause();
+
         }
 
         // ---------------------------------
-        // INITIAL VIDEO
+        // START
         // ---------------------------------
 
         current.src = videos[0];
 
         current.load();
 
-        if (autoplayEnabled) {
-
-            current.play();
-
-        }
+        current.play().catch(
+            err => {
+                console.log(err);
+            }
+        );
 
         preload(1);
 
@@ -414,6 +589,182 @@
 
         next.style.transform =
             "translateY(100vh)";
+
+        // ---------------------------------
+        // TAP TO PLAY
+        // ---------------------------------
+
+        document.addEventListener(
+            "click",
+            () => {
+
+                if (!autoplayEnabled) {
+
+                    current.play();
+
+                    hidePlayOverlay();
+
+                }
+
+            }
+        );
+
+        // ---------------------------------
+        // MOTION SENSORS
+        // ---------------------------------
+
+        window.addEventListener(
+            "devicemotion",
+            e => {
+
+                // ACCELEROMETER
+
+                const acc =
+                    e.accelerationIncludingGravity;
+
+                if (acc) {
+
+                    accX = acc.x || 0;
+                    accY = acc.y || 0;
+                    accZ = acc.z || 0;
+
+                    accMagnitude = Math.sqrt(
+
+                        accX * accX +
+                        accY * accY +
+                        accZ * accZ
+
+                    );
+
+                }
+
+                // GYROSCOPE
+
+                const rot =
+                    e.rotationRate;
+
+                if (rot) {
+
+                    rotX = rot.alpha || 0;
+                    rotY = rot.beta || 0;
+                    rotZ = rot.gamma || 0;
+
+                    rotMagnitude = Math.sqrt(
+
+                        rotX * rotX +
+                        rotY * rotY +
+                        rotZ * rotZ
+
+                    );
+
+                }
+
+                // STORE HISTORY
+
+                accHistory.push(accMagnitude);
+                rotHistory.push(rotMagnitude);
+
+                if (accHistory.length > maxPoints) {
+
+                    accHistory.shift();
+                    rotHistory.shift();
+
+                }
+
+                // UPDATE TEXT
+
+                sensorNumbers.innerHTML = `
+
+ACCELEROMETER
+x ${accX.toFixed(2)}
+y ${accY.toFixed(2)}
+z ${accZ.toFixed(2)}
+m ${accMagnitude.toFixed(2)}
+
+GYROSCOPE
+x ${rotX.toFixed(2)}
+y ${rotY.toFixed(2)}
+z ${rotZ.toFixed(2)}
+m ${rotMagnitude.toFixed(2)}
+
+                `;
+
+            }
+        );
+
+        // ---------------------------------
+        // DRAW GRAPH
+        // ---------------------------------
+
+        function drawGraph() {
+
+            ctx.clearRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+            );
+
+            // ACCELERATION
+
+            ctx.beginPath();
+
+            ctx.strokeStyle = "white";
+
+            accHistory.forEach((v, i) => {
+
+                const y =
+                    canvas.height - (v * 3);
+
+                if (i === 0) {
+
+                    ctx.moveTo(i, y);
+
+                }
+
+                else {
+
+                    ctx.lineTo(i, y);
+
+                }
+
+            });
+
+            ctx.stroke();
+
+            // GYROSCOPE
+
+            ctx.beginPath();
+
+            ctx.strokeStyle =
+                "rgba(255,255,255,0.4)";
+
+            rotHistory.forEach((v, i) => {
+
+                const y =
+                    canvas.height - (v * 0.5);
+
+                if (i === 0) {
+
+                    ctx.moveTo(i, y);
+
+                }
+
+                else {
+
+                    ctx.lineTo(i, y);
+
+                }
+
+            });
+
+            ctx.stroke();
+
+            requestAnimationFrame(drawGraph);
+
+        }
+
+        drawGraph();
 
         // ---------------------------------
         // DRAGGING
@@ -501,23 +852,13 @@
                 next.style.transition =
                     "transform 0.3s ease";
 
-                // ---------------------------------
-                // SWIPE THRESHOLD
-                // ---------------------------------
-
                 const swipeThreshold =
                     thresholdMap[swipeTension];
-
-                // ---------------------------------
-                // TRANSITION DELAY
-                // ---------------------------------
 
                 const transitionDelay =
                     paceMap[transitionPace];
 
-                // ---------------------------------
                 // COMPLETE SWIPE
-                // ---------------------------------
 
                 if (dy < -swipeThreshold) {
 
@@ -556,6 +897,8 @@
 
                         if (autoplayEnabled) {
 
+                            hidePlayOverlay();
+
                             current.play().catch(
                                 err => {
                                     console.log(err);
@@ -564,13 +907,19 @@
 
                         }
 
+                        else {
+
+                            current.pause();
+
+                            showPlayOverlay();
+
+                        }
+
                     }, 300 + transitionDelay);
 
                 }
 
-                // ---------------------------------
                 // SNAP BACK
-                // ---------------------------------
 
                 else {
 
