@@ -2,88 +2,253 @@
 <html>
 
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
     <style>
+
         html,
         body {
+
             margin: 0;
             padding: 0;
+
             overflow: hidden;
+
             background: black;
+
             touch-action: none;
+
+            font-family: sans-serif;
         }
 
         video {
+
             position: absolute;
+
             width: 100vw;
             height: 100vh;
+
             object-fit: cover;
+
             top: 0;
             left: 0;
+
             background: black;
+
             will-change: transform;
         }
 
         #label {
+
             position: fixed;
+
             top: 10px;
             left: 10px;
+
             color: white;
-            background: rgba(0, 0, 0, 0.5);
+
+            background: rgba(0,0,0,0.5);
+
             padding: 6px 10px;
-            z-index: 100;
-            font-family: sans-serif;
+
             border-radius: 8px;
+
+            z-index: 100;
         }
 
         #debug {
+
             position: fixed;
+
             bottom: 10px;
             left: 10px;
+
             color: white;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 8px;
+
+            background: rgba(0,0,0,0.6);
+
+            padding: 10px;
+
+            border-radius: 8px;
+
             z-index: 100;
+
             font-family: monospace;
             font-size: 12px;
-            border-radius: 8px;
-            line-height: 1.4;
+
+            line-height: 1.5;
         }
+
+        #controls {
+
+            position: fixed;
+
+            top: 60px;
+            left: 10px;
+
+            z-index: 200;
+
+            color: white;
+
+            background: rgba(0,0,0,0.7);
+
+            padding: 12px;
+
+            border-radius: 10px;
+
+            width: 240px;
+        }
+
+        .controlGroup {
+
+            margin-bottom: 16px;
+        }
+
+        .controlLabel {
+
+            margin-bottom: 8px;
+
+            font-size: 13px;
+        }
+
+        .boxes {
+
+            display: flex;
+
+            gap: 6px;
+        }
+
+        .box {
+
+            width: 28px;
+            height: 28px;
+
+            border: 1px solid white;
+
+            border-radius: 4px;
+
+            opacity: 0.25;
+
+            transition: 0.2s;
+        }
+
+        .box.active {
+
+            opacity: 1;
+
+            background: white;
+        }
+
+        button {
+
+            border: none;
+
+            padding: 8px 14px;
+
+            border-radius: 6px;
+
+            font-weight: bold;
+
+            cursor: pointer;
+        }
+
     </style>
+
 </head>
 
 <body>
 
-    <div id="label">Feed A</div>
+    <!-- LABEL -->
 
-    <div id="debug">Starting...</div>
+    <div id="label">
+        Infinite Scroll Prototype
+    </div>
 
-    <video id="current" autoplay muted loop playsinline></video>
-    <video id="next" autoplay muted loop playsinline></video>
+    <!-- CONTROLS -->
+
+    <div id="controls">
+
+        <!-- AUTOPLAY -->
+
+        <div class="controlGroup">
+
+            <div class="controlLabel">
+                Autoplay
+            </div>
+
+            <button id="autoplayBtn">
+                ON
+            </button>
+
+        </div>
+
+        <!-- SWIPE TENSION -->
+
+        <div class="controlGroup">
+
+            <div class="controlLabel">
+                Swipe Tension
+            </div>
+
+            <div
+                class="boxes"
+                id="tensionBoxes">
+            </div>
+
+        </div>
+
+        <!-- TRANSITION PACE -->
+
+        <div class="controlGroup">
+
+            <div class="controlLabel">
+                Transition Pace
+            </div>
+
+            <div
+                class="boxes"
+                id="paceBoxes">
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- DEBUG -->
+
+    <div id="debug">
+        Loading...
+    </div>
+
+    <!-- VIDEOS -->
+
+    <video
+        id="current"
+        muted
+        playsinline></video>
+
+    <video
+        id="next"
+        muted
+        playsinline></video>
 
     <script>
-
-        // ---------------------------------
-        // FEEDS
-        // ---------------------------------
-
-        const feeds = ["A", "B", "C"];
-        let currentFeed = 0;
 
         // ---------------------------------
         // VIDEOS
         // ---------------------------------
 
         const videos = [
+
             "vid1.mp4",
             "vid2.mp4",
             "vid3.mp4",
             "vid4.mp4",
             "vid5.mp4",
-            "vid6.mp4",
-            "vid7.mp4",
-            "vid8.mp4",
+            "vid6.mp4"
+
         ];
 
         // ---------------------------------
@@ -96,31 +261,23 @@
         let next =
             document.getElementById("next");
 
-        const label =
-            document.getElementById("label");
-
         const debug =
             document.getElementById("debug");
 
         // ---------------------------------
-        // VIDEO SETTINGS
+        // INTERACTION SETTINGS
         // ---------------------------------
 
-        [current, next].forEach(v => {
+        let autoplayEnabled = true;
 
-            v.muted = true;
-            v.autoplay = true;
-            v.loop = true;
-            v.playsInline = true;
+        // 1 → 5
+        let swipeTension = 2;
 
-            v.setAttribute("muted", "");
-            v.setAttribute("autoplay", "");
-            v.setAttribute("playsinline", "");
-
-        });
+        // 1 → 5
+        let transitionPace = 2;
 
         // ---------------------------------
-        // SESSION DATA
+        // SESSION
         // ---------------------------------
 
         let currentIndex = 0;
@@ -129,9 +286,105 @@
 
         let lastSwipe = Date.now();
 
-        let sessionData = [];
-
         const sessionStart = Date.now();
+
+        // ---------------------------------
+        // AUTOPLAY BUTTON
+        // ---------------------------------
+
+        const autoplayBtn =
+            document.getElementById("autoplayBtn");
+
+        autoplayBtn.addEventListener(
+            "click",
+            () => {
+
+                autoplayEnabled =
+                    !autoplayEnabled;
+
+                autoplayBtn.innerText =
+
+                    autoplayEnabled
+                    ? "ON"
+                    : "OFF";
+
+            }
+        );
+
+        // ---------------------------------
+        // CREATE BOXES
+        // ---------------------------------
+
+        function createBoxes(
+            containerId,
+            currentValue,
+            callback
+        ) {
+
+            const container =
+                document.getElementById(containerId);
+
+            container.innerHTML = "";
+
+            for (let i = 1; i <= 5; i++) {
+
+                const box =
+                    document.createElement("div");
+
+                box.classList.add("box");
+
+                if (i <= currentValue) {
+
+                    box.classList.add("active");
+
+                }
+
+                box.addEventListener(
+                    "click",
+                    () => {
+
+                        callback(i);
+
+                        createBoxes(
+                            containerId,
+                            i,
+                            callback
+                        );
+
+                        updateDebug();
+
+                    }
+                );
+
+                container.appendChild(box);
+
+            }
+
+        }
+
+        // ---------------------------------
+        // INIT BOXES
+        // ---------------------------------
+
+        createBoxes(
+            "tensionBoxes",
+            swipeTension,
+            value => {
+
+                swipeTension = value;
+
+            }
+        );
+
+        createBoxes(
+            "paceBoxes",
+            transitionPace,
+            value => {
+
+                transitionPace = value;
+
+            }
+        );
 
         // ---------------------------------
         // PRELOAD
@@ -142,15 +395,12 @@
             const file =
                 videos[index % videos.length];
 
-            console.log("Preloading:", file);
-
             next.preload = "auto";
 
             next.src = file;
 
             next.load();
 
-            next.play();
         }
 
         // ---------------------------------
@@ -159,7 +409,13 @@
 
         current.src = videos[0];
 
-        current.play();
+        current.load();
+
+        if (autoplayEnabled) {
+
+            current.play();
+
+        }
 
         preload(1);
 
@@ -170,21 +426,33 @@
             "translateY(100vh)";
 
         // ---------------------------------
-        // DEBUG UI
+        // DEBUG
         // ---------------------------------
 
         function updateDebug(interval = 0) {
 
             const sessionTime =
-                Math.floor((Date.now() - sessionStart) / 1000);
+
+                Math.floor(
+                    (Date.now() - sessionStart) / 1000
+                );
 
             debug.innerHTML = `
-                Feed: ${feeds[currentFeed]}<br>
-                Video: ${currentIndex + 1}/${videos.length}<br>
+
                 Swipes: ${swipeCount}<br>
+
                 Interval: ${interval}ms<br>
-                Session: ${sessionTime}s
+
+                Session: ${sessionTime}s<br>
+
+                Autoplay: ${autoplayEnabled}<br>
+
+                Tension: ${swipeTension}/5<br>
+
+                Pace: ${transitionPace}/5
+
             `;
+
         }
 
         updateDebug();
@@ -195,7 +463,6 @@
 
         let dragging = false;
 
-        let startX = 0;
         let startY = 0;
 
         let currentY = 0;
@@ -204,137 +471,187 @@
         // TOUCH START
         // ---------------------------------
 
-        document.addEventListener("touchstart", e => {
+        document.addEventListener(
+            "touchstart",
+            e => {
 
-            dragging = true;
+                dragging = true;
 
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
+                startY =
+                    e.touches[0].clientY;
 
-            currentY = startY;
+                currentY = startY;
 
-            current.style.transition = "none";
-            next.style.transition = "none";
+                current.style.transition =
+                    "none";
 
-            current.play();
+                next.style.transition =
+                    "none";
 
-        });
+            }
+        );
 
         // ---------------------------------
         // TOUCH MOVE
         // ---------------------------------
 
-        document.addEventListener("touchmove", e => {
+        document.addEventListener(
+            "touchmove",
+            e => {
 
-            if (!dragging) return;
+                if (!dragging) return;
 
-            currentY = e.touches[0].clientY;
+                currentY =
+                    e.touches[0].clientY;
 
-            let deltaY =
-                currentY - startY;
+                let deltaY =
+                    currentY - startY;
 
-            if (deltaY < 0) {
+                if (deltaY < 0) {
 
-                current.style.transform =
-                    `translateY(${deltaY}px)`;
+                    current.style.transform =
 
-                next.style.transform =
-                    `translateY(${window.innerHeight + deltaY}px)`;
+                        `translateY(${deltaY}px)`;
+
+                    next.style.transform =
+
+                        `translateY(${window.innerHeight + deltaY}px)`;
+
+                }
+
             }
-
-        });
+        );
 
         // ---------------------------------
         // TOUCH END
         // ---------------------------------
 
-        document.addEventListener("touchend", e => {
+        document.addEventListener(
+            "touchend",
+            e => {
 
-            dragging = false;
+                dragging = false;
 
-            let dx =
-                e.changedTouches[0].clientX - startX;
+                let dy =
 
-            let dy =
-                e.changedTouches[0].clientY - startY;
+                    e.changedTouches[0].clientY
+                    - startY;
 
-            // horizontal feed switch
-            if (Math.abs(dx) > Math.abs(dy)) {
+                current.style.transition =
 
-                if (dx > 50) switchFeed(-1);
+                    "transform 0.3s ease";
 
-                if (dx < -50) switchFeed(1);
+                next.style.transition =
 
-                current.style.transform =
-                    "translateY(0vh)";
+                    "transform 0.3s ease";
 
-                next.style.transform =
-                    "translateY(100vh)";
+                // ---------------------------------
+                // SWIPE TENSION MAP
+                // ---------------------------------
 
-                return;
-            }
+                const thresholdMap = {
 
-            current.style.transition =
-                "transform 0.25s ease";
+                    1: 60,
+                    2: 120,
+                    3: 180,
+                    4: 240,
+                    5: 320
 
-            next.style.transition =
-                "transform 0.25s ease";
+                };
 
-            // vertical swipe complete
-            if (dy < -120) {
+                const swipeThreshold =
+                    thresholdMap[swipeTension];
 
-                const now = Date.now();
+                // ---------------------------------
+                // TRANSITION PACE MAP
+                // ---------------------------------
 
-                const interval =
-                    now - lastSwipe;
+                const paceMap = {
 
-                lastSwipe = now;
+                    1: 0,
+                    2: 250,
+                    3: 700,
+                    4: 1400,
+                    5: 2200
 
-                swipeCount++;
+                };
 
-                let extraDelay = 0;
+                const transitionDelay =
+                    paceMap[transitionPace];
 
-                // Feed B
-                if (feeds[currentFeed] === "B") {
-                    extraDelay = 600;
+                // ---------------------------------
+                // COMPLETE SWIPE
+                // ---------------------------------
+
+                if (dy < -swipeThreshold) {
+
+                    const now = Date.now();
+
+                    const interval =
+                        now - lastSwipe;
+
+                    lastSwipe = now;
+
+                    swipeCount++;
+
+                    updateDebug(interval);
+
+                    // ANIMATE
+
+                    current.style.transform =
+                        "translateY(-100vh)";
+
+                    next.style.transform =
+                        "translateY(0vh)";
+
+                    // SWAP
+
+                    setTimeout(() => {
+
+                        let temp = current;
+
+                        current = next;
+
+                        next = temp;
+
+                        current.style.transition =
+                            "none";
+
+                        next.style.transition =
+                            "none";
+
+                        current.style.transform =
+                            "translateY(0vh)";
+
+                        next.style.transform =
+                            "translateY(100vh)";
+
+                        currentIndex =
+
+                            (currentIndex + 1)
+                            % videos.length;
+
+                        preload(currentIndex + 1);
+
+                        if (autoplayEnabled) {
+
+                            current.play().catch(
+                                err => {
+                                    console.log(err);
+                                }
+                            );
+
+                        }
+
+                    }, 300 + transitionDelay);
+
                 }
 
-                // Feed C
-                if (feeds[currentFeed] === "C") {
-                    extraDelay = Math.random() * 800;
-                }
+                // ---------------------------------
+                // SNAP BACK
+                // ---------------------------------
 
-                // Adaptive friction
-                if (interval < 1200) {
-                    extraDelay += 500;
-                }
-
-                sessionData.push({
-                    timestamp: new Date().toISOString(),
-                    feed: feeds[currentFeed],
-                    video: currentIndex,
-                    interval: interval,
-                    extraDelay: extraDelay
-                });
-
-                console.log(sessionData);
-
-                updateDebug(interval);
-
-                current.style.transform =
-                    "translateY(-100vh)";
-
-                next.style.transform =
-                    "translateY(0vh)";
-
-                setTimeout(() => {
-
-                    let temp = current;
-                    current = next;
-                    next = temp;
-
-                    current.style.transition = "none";
-                    next.style.transition = "none";
+                else {
 
                     current.style.transform =
                         "translateY(0vh)";
@@ -342,66 +659,10 @@
                     next.style.transform =
                         "translateY(100vh)";
 
-                    currentIndex =
-                        (currentIndex + 1) % videos.length;
-
-                    preload(currentIndex + 1);
-
-                    current.play();
-
-                }, 250 + extraDelay);
+                }
 
             }
-
-            // snap back
-            else {
-
-                current.style.transform =
-                    "translateY(0vh)";
-
-                next.style.transform =
-                    "translateY(100vh)";
-            }
-
-        });
-
-        // ---------------------------------
-        // KEYBOARD CONTROLS
-        // ---------------------------------
-
-        document.addEventListener("keydown", e => {
-
-            if (e.key === "ArrowLeft") {
-                switchFeed(-1);
-            }
-
-            if (e.key === "ArrowRight") {
-                switchFeed(1);
-            }
-
-        });
-
-        // ---------------------------------
-        // SWITCH FEED
-        // ---------------------------------
-
-        function switchFeed(dir) {
-
-            currentFeed += dir;
-
-            if (currentFeed < 0) {
-                currentFeed = feeds.length - 1;
-            }
-
-            if (currentFeed >= feeds.length) {
-                currentFeed = 0;
-            }
-
-            label.innerText =
-                "Feed " + feeds[currentFeed];
-
-            updateDebug();
-        }
+        );
 
     </script>
 
