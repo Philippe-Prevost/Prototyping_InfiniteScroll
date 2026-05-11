@@ -3,9 +3,11 @@
 
 <head>
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
     <style>
+
         html,
         body {
 
@@ -47,7 +49,7 @@
 
             color: white;
 
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0,0,0,0.4);
 
             padding: 6px 10px;
 
@@ -76,7 +78,7 @@
 
             margin-bottom: 12px;
 
-            background: rgba(0, 0, 0, 0.35);
+            background: rgba(0,0,0,0.35);
 
             padding: 8px 10px;
 
@@ -160,7 +162,7 @@
 
             border-radius: 50%;
 
-            background: rgba(0, 0, 0, 0.45);
+            background: rgba(0,0,0,0.45);
 
             display: flex;
 
@@ -197,35 +199,55 @@
 
             z-index: 300;
 
-            color: white;
-
-            font-family: monospace;
-
-            font-size: 11px;
+            width: 340px;
         }
 
         #sensorNumbers {
 
-            background: rgba(0, 0, 0, 0.4);
+            background: rgba(0,0,0,0.45);
 
-            padding: 8px;
+            padding: 10px;
 
-            border-radius: 8px;
+            border-radius: 10px;
 
             margin-bottom: 8px;
 
-            line-height: 1.5;
+            font-family: monospace;
+
+            line-height: 1.6;
+        }
+
+        .sensorLine {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            margin-bottom: 4px;
+
+            font-size: 13px;
+        }
+
+        .accelText {
+
+            color: #ff4d4d;
+        }
+
+        .gyroText {
+
+            color: #4da6ff;
         }
 
         #motionGraph {
 
-            width: 320px;
-            height: 120px;
+            width: 340px;
+            height: 140px;
 
-            background: rgba(0, 0, 0, 0.35);
+            background: rgba(0,0,0,0.35);
 
-            border-radius: 8px;
+            border-radius: 10px;
         }
+
     </style>
 
 </head>
@@ -242,8 +264,6 @@
 
     <div id="controls">
 
-        <!-- AUTOPLAY -->
-
         <div class="controlGroup">
 
             <div class="controlLabel">
@@ -256,20 +276,18 @@
 
         </div>
 
-        <!-- SWIPE TENSION -->
-
         <div class="controlGroup">
 
             <div class="controlLabel">
                 Swipe Tension
             </div>
 
-            <div class="boxes" id="tensionBoxes">
+            <div
+                class="boxes"
+                id="tensionBoxes">
             </div>
 
         </div>
-
-        <!-- TRANSITION PACE -->
 
         <div class="controlGroup">
 
@@ -277,7 +295,9 @@
                 Transition Pace
             </div>
 
-            <div class="boxes" id="paceBoxes">
+            <div
+                class="boxes"
+                id="paceBoxes">
             </div>
 
         </div>
@@ -300,9 +320,7 @@
 
     <div id="sensorPanel">
 
-        <div id="sensorNumbers">
-            Waiting for sensors...
-        </div>
+        <div id="sensorNumbers"></div>
 
         <canvas id="motionGraph"></canvas>
 
@@ -310,10 +328,16 @@
 
     <!-- VIDEOS -->
 
-    <video id="current" muted playsinline>
+    <video
+        id="current"
+        muted
+        playsinline>
     </video>
 
-    <video id="next" muted playsinline>
+    <video
+        id="next"
+        muted
+        playsinline>
     </video>
 
     <script>
@@ -355,8 +379,8 @@
         const ctx =
             canvas.getContext("2d");
 
-        canvas.width = 320;
-        canvas.height = 120;
+        canvas.width = 340;
+        canvas.height = 140;
 
         // ---------------------------------
         // SETTINGS
@@ -396,22 +420,16 @@
         // SENSOR DATA
         // ---------------------------------
 
-        let accX = 0;
-        let accY = 0;
-        let accZ = 0;
-
         let accMagnitude = 0;
-
-        let rotX = 0;
-        let rotY = 0;
-        let rotZ = 0;
-
         let rotMagnitude = 0;
+
+        let smoothAcc = 0;
+        let smoothRot = 0;
 
         let accHistory = [];
         let rotHistory = [];
 
-        const maxPoints = 320;
+        const maxPoints = 340;
 
         // ---------------------------------
         // SESSION
@@ -454,8 +472,8 @@
                 autoplayBtn.innerText =
 
                     autoplayEnabled
-                        ? "ON"
-                        : "OFF";
+                    ? "ON"
+                    : "OFF";
 
                 if (!autoplayEnabled) {
 
@@ -610,59 +628,89 @@
         );
 
         // ---------------------------------
-        // MOTION SENSORS
+        // SENSOR SAMPLING
         // ---------------------------------
+
+        let lastSensorUpdate = 0;
 
         window.addEventListener(
             "devicemotion",
             e => {
 
+                const now = Date.now();
+
+                if (
+                    now - lastSensorUpdate < 50
+                ) return;
+
+                lastSensorUpdate = now;
+
+                // -------------------------
                 // ACCELEROMETER
+                // -------------------------
 
                 const acc =
                     e.accelerationIncludingGravity;
 
                 if (acc) {
 
-                    accX = acc.x || 0;
-                    accY = acc.y || 0;
-                    accZ = acc.z || 0;
+                    const x = acc.x || 0;
+                    const y = acc.y || 0;
+                    const z = acc.z || 0;
 
                     accMagnitude = Math.sqrt(
 
-                        accX * accX +
-                        accY * accY +
-                        accZ * accZ
+                        x*x +
+                        y*y +
+                        z*z
 
                     );
 
                 }
 
+                // -------------------------
                 // GYROSCOPE
+                // -------------------------
 
                 const rot =
                     e.rotationRate;
 
                 if (rot) {
 
-                    rotX = rot.alpha || 0;
-                    rotY = rot.beta || 0;
-                    rotZ = rot.gamma || 0;
+                    const x = rot.alpha || 0;
+                    const y = rot.beta || 0;
+                    const z = rot.gamma || 0;
 
                     rotMagnitude = Math.sqrt(
 
-                        rotX * rotX +
-                        rotY * rotY +
-                        rotZ * rotZ
+                        x*x +
+                        y*y +
+                        z*z
 
                     );
 
                 }
 
-                // STORE HISTORY
+                // -------------------------
+                // SMOOTHING
+                // -------------------------
 
-                accHistory.push(accMagnitude);
-                rotHistory.push(rotMagnitude);
+                smoothAcc =
+
+                    smoothAcc * 0.9
+                    + accMagnitude * 0.1;
+
+                smoothRot =
+
+                    smoothRot * 0.9
+                    + rotMagnitude * 0.1;
+
+                // -------------------------
+                // HISTORY
+                // -------------------------
+
+                accHistory.push(smoothAcc);
+                rotHistory.push(smoothRot);
 
                 if (accHistory.length > maxPoints) {
 
@@ -671,21 +719,27 @@
 
                 }
 
-                // UPDATE TEXT
+                // -------------------------
+                // TEXT DISPLAY
+                // -------------------------
 
                 sensorNumbers.innerHTML = `
 
-ACCELEROMETER
-x ${accX.toFixed(2)}
-y ${accY.toFixed(2)}
-z ${accZ.toFixed(2)}
-m ${accMagnitude.toFixed(2)}
+<div class="sensorLine accelText">
 
-GYROSCOPE
-x ${rotX.toFixed(2)}
-y ${rotY.toFixed(2)}
-z ${rotZ.toFixed(2)}
-m ${rotMagnitude.toFixed(2)}
+<span>ACCEL</span>
+
+<span>${smoothAcc.toFixed(2)}</span>
+
+</div>
+
+<div class="sensorLine gyroText">
+
+<span>GYRO</span>
+
+<span>${smoothRot.toFixed(2)}</span>
+
+</div>
 
                 `;
 
@@ -693,7 +747,7 @@ m ${rotMagnitude.toFixed(2)}
         );
 
         // ---------------------------------
-        // DRAW GRAPH
+        // GRAPH
         // ---------------------------------
 
         function drawGraph() {
@@ -705,16 +759,20 @@ m ${rotMagnitude.toFixed(2)}
                 canvas.height
             );
 
-            // ACCELERATION
+            // -------------------------
+            // ACCEL GRAPH
+            // -------------------------
 
             ctx.beginPath();
 
-            ctx.strokeStyle = "white";
+            ctx.strokeStyle = "#ff4d4d";
+
+            ctx.lineWidth = 2;
 
             accHistory.forEach((v, i) => {
 
                 const y =
-                    canvas.height - (v * 3);
+                    canvas.height - (v * 4);
 
                 if (i === 0) {
 
@@ -732,12 +790,15 @@ m ${rotMagnitude.toFixed(2)}
 
             ctx.stroke();
 
-            // GYROSCOPE
+            // -------------------------
+            // GYRO GRAPH
+            // -------------------------
 
             ctx.beginPath();
 
-            ctx.strokeStyle =
-                "rgba(255,255,255,0.4)";
+            ctx.strokeStyle = "#4da6ff";
+
+            ctx.lineWidth = 2;
 
             rotHistory.forEach((v, i) => {
 
