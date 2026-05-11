@@ -369,6 +369,17 @@
         let next =
             document.getElementById("next");
 
+        // FORCE LOOPING
+
+        current.loop = true;
+        next.loop = true;
+
+        current.muted = true;
+        next.muted = true;
+
+        current.playsInline = true;
+        next.playsInline = true;
+
         const playOverlay =
             document.getElementById("playOverlay");
 
@@ -647,9 +658,7 @@
 
                 lastSensorUpdate = now;
 
-                // -------------------------
                 // ACCELEROMETER
-                // -------------------------
 
                 const acc =
                     e.accelerationIncludingGravity;
@@ -670,9 +679,7 @@
 
                 }
 
-                // -------------------------
                 // GYROSCOPE
-                // -------------------------
 
                 const rot =
                     e.rotationRate;
@@ -693,9 +700,7 @@
 
                 }
 
-                // -------------------------
                 // SMOOTHING
-                // -------------------------
 
                 smoothAcc =
 
@@ -707,9 +712,7 @@
                     smoothRot * 0.9
                     + rotMagnitude * 0.1;
 
-                // -------------------------
                 // HISTORY
-                // -------------------------
 
                 accHistory.push(smoothAcc);
                 rotHistory.push(smoothRot);
@@ -721,9 +724,7 @@
 
                 }
 
-                // -------------------------
-                // TEXT DISPLAY
-                // -------------------------
+                // DISPLAY
 
                 sensorNumbers.innerHTML = `
 
@@ -739,7 +740,7 @@
 
 <span>GYRO</span>
 
-<span>${smoothRot.toFixed(2)}</span>
+<span>${smoothRot.toFixed(4)}</span>
 
 </div>
 
@@ -761,9 +762,7 @@
                 canvas.height
             );
 
-            // -------------------------
             // ACCEL GRAPH
-            // -------------------------
 
             ctx.beginPath();
 
@@ -792,9 +791,7 @@
 
             ctx.stroke();
 
-            // -------------------------
             // GYRO GRAPH
-            // -------------------------
 
             ctx.beginPath();
 
@@ -805,7 +802,7 @@
             rotHistory.forEach((v, i) => {
 
                 const y =
-                    canvas.height - (v * 0.5);
+                    canvas.height - (v * 12);
 
                 if (i === 0) {
 
@@ -961,6 +958,8 @@
                         if (autoplayEnabled) {
 
                             hidePlayOverlay();
+
+                            current.currentTime = 0;
 
                             current.play().catch(
                                 err => {
